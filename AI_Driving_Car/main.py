@@ -3,20 +3,21 @@ import os
 import math
 import sys
 import neat
+import random
 
-SCREEN_WIDTH = 1244
-SCREEN_HEIGHT = 1016
+SCREEN_WIDTH = 1920
+SCREEN_HEIGHT = 1080
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 TRACK = pygame.image.load(os.path.join("Assets", "track.png"))
 
 
 class Car(pygame.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, start_pos):
         super().__init__()
         self.original_image = pygame.image.load(os.path.join("Assets", "car.png"))
         self.image = self.original_image
-        self.rect = self.image.get_rect(center=(490, 820))
+        self.rect = self.image.get_rect(center=start_pos)
         self.vel_vector = pygame.math.Vector2(0.8, 0)
         self.angle = 0
         self.rotation_vel = 5
@@ -91,6 +92,16 @@ def remove(index):
     nets.pop(index)
 
 
+def find_starting_line():
+    # Find the white line on the track image
+    start_positions = []
+    for y in range(TRACK.get_height()):
+        for x in range(TRACK.get_width()):
+            if TRACK.get_at((x, y)) == pygame.Color(255, 255, 255, 255):
+                start_positions.append((x, y))
+    return start_positions
+
+
 def eval_genomes(genomes, config):
     global cars, ge, nets
 
@@ -98,8 +109,13 @@ def eval_genomes(genomes, config):
     ge = []
     nets = []
 
+    start_positions = find_starting_line()
+    if not start_positions:
+        raise Exception("No starting line found on the track image")
+
     for genomes_id, genome in genomes:
-        cars.append(pygame.sprite.GroupSingle(Car()))
+        start_pos = random.choice(start_positions)
+        cars.append(pygame.sprite.GroupSingle(Car(start_pos)))
         ge.append(genome)
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         nets.append(net)
@@ -111,6 +127,10 @@ def eval_genomes(genomes, config):
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    sys.exit()
 
         SCREEN.blit(TRACK, (0, 0))
 
