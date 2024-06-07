@@ -6,6 +6,8 @@ import neat
 import csv
 import time
 import random
+import pickle
+import subprocess
 
 SCREEN_WIDTH = 1920
 SCREEN_HEIGHT = 1080
@@ -25,6 +27,7 @@ class Car(pygame.sprite.Sprite):
         self.image = self.original_image
         self.rect = self.image.get_rect(center=start_pos)
         self.vel_vector = pygame.math.Vector2(0.8, 0)
+        self.initial_heading = self.vel_vector.angle_to(pygame.math.Vector2(1, 0))  # Track initial heading
         self.angle = 0
         self.rotation_vel = 5
         self.direction = 0
@@ -76,7 +79,11 @@ class Car(pygame.sprite.Sprite):
             input[i] = int(radar[1])
         return input
 
-    def collision(self):
+    def heading_difference(self):
+        current_heading = self.vel_vector.angle_to(pygame.math.Vector2(1, 0))
+        return abs(current_heading - self.initial_heading)
+
+    def collision(self, genome):
         length = 40
         collision_point_right = [int(self.rect.center[0] + math.cos(math.radians(self.angle + 18)) * length),
                                  int(self.rect.center[1] - math.sin(math.radians(self.angle + 18)) * length)]
@@ -94,22 +101,31 @@ class Car(pygame.sprite.Sprite):
 
         if SCREEN.get_at(collision_point_right) == pygame.Color(255, 255, 255) and not self.lap and self.time_passed_to_start > 1:
             self.lap = True
-            self.lap_times.append(time.time() - self.current_lap_start_time)
+            lap_time = time.time() - self.current_lap_start_time
+            self.lap_times.append(lap_time)
             self.completed_laps += 1
             self.current_lap_start_time = time.time()  # Reset for the next lap
+
+            # Incrementa la fitness basata sulla velocità di completamento dei giri (meno è, meglio è)
+            genome.fitness += 1000 / lap_time
+
+        # Penalizza la fitness se la differenza di direzione supera una soglia
+        heading_diff = self.heading_difference()
+        if heading_diff > 90:  # Soglia di 90 gradi, puoi modificarla secondo necessità
+            genome.fitness -= min(heading_diff, genome.fitness)  # Penalità proporzionale alla differenza di direzione, ma non più della fitness attuale
 
         self.time_passed_to_start = time.time() - self.current_lap_start_time
 
         pygame.draw.circle(SCREEN, (0, 255, 255, 0), collision_point_right, 4)
         pygame.draw.circle(SCREEN, (0, 255, 255, 0), collision_point_left, 4)
 
-    def update(self):
+    def update(self, genome):
         self.radars.clear()
         self.drive()
         self.rotate()
         for radar_angle in (-60, -30, 0, 30, 60):
             self.radar(radar_angle)
-        self.collision()
+        self.collision(genome)
         self.data()
 
 def remove(index):
@@ -174,7 +190,7 @@ def eval_genomes(genomes, config):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     save_results_to_csv()
-                    pop.reporters.end_generation(pop.generation)
+                    pop.reporters.end_generation(pop.config, pop.population, pop.species)
                     pygame.quit()
                     sys.exit()
                 if event.key == pygame.K_l:  # Press 'L' to toggle leaderboard
@@ -188,7 +204,6 @@ def eval_genomes(genomes, config):
             break
 
         for i, car in enumerate(cars):
-            ge[i].fitness += 1
             if not car.sprite.alive:
                 remove(i)
 
@@ -201,18 +216,27 @@ def eval_genomes(genomes, config):
             if output[0] <= 0.7 and output[1] <= 0.7:
                 car.sprite.direction = 0
 
-        for car in cars:
+        for i, car in enumerate(cars):
             car.draw(SCREEN)
-            car.update()
+            car.update(ge[i])
 
         update_leaderboard(cars, ge)
         pygame.display.update()
 
-        # Check if total laps reached a multiple of 5
         total_laps = sum(car.sprite.completed_laps for car in cars)
-        if total_laps % 5 == 0 and total_laps > 0:
+        if total_laps % 5 == 0 and total_laps > 0:  # Cambia qui per impostare il numero di giri prima che si riavvii
             save_results_to_csv()
+            save_population()
             break
+
+    # Check if we need to run the graph generator script
+    if not any(car.sprite.alive for car in cars):
+        pygame.quit()
+        try:
+            subprocess.run([sys.executable, 'GraphGenerator.py'], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Error executing GraphGenerator.py: {e}")
+        sys.exit()
 
 def save_results_to_csv():
     global run_generation
@@ -226,8 +250,21 @@ def save_results_to_csv():
                 writer.writerow([i+1, lap_num + 1, rounded_lap_time, ge[i].fitness])
     run_generation += 1
 
+def save_population():
+    with open('population.pkl', 'wb') as f:
+        pickle.dump(pop, f)
+
+def load_population(config):
+    global pop
+    if os.path.exists('population.pkl'):
+        with open('population.pkl', 'rb') as f:
+            pop = pickle.load(f)
+            pop.config = config
+    else:
+        pop = neat.Population(config)
+
 def run(config_path):
-    global pop, run_generation
+    global run_generation
 
     # Check if the race_results.csv file exists and delete it if it does
     if os.path.exists('race_results.csv'):
@@ -243,7 +280,7 @@ def run(config_path):
         config_path
     )
 
-    pop = neat.Population(config)
+    load_population(config)
 
     pop.add_reporter(neat.StdOutReporter(True))
     stats = neat.StatisticsReporter()
