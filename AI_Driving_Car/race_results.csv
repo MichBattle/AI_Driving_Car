@@ -1,0 +1,33 @@
+Run Generation 0
+Car ID,Lap Number,Lap Time,Fitness
+1,1,3.69,5237
+1,2,3.66,5237
+1,3,3.32,5237
+1,4,3.1,5237
+1,5,3.09,5237
+Run Generation 1
+Car ID,Lap Number,Lap Time,Fitness
+1,1,9.37,2621
+1,2,4.52,2621
+1,3,4.52,2621
+2,1,9.74,2618
+2,2,4.57,2618
+Run Generation 2
+Car ID,Lap Number,Lap Time,Fitness
+1,1,16.74,1735
+4,1,12.82,1736
+5,1,17.03,1734
+7,1,12.75,1732
+8,1,12.64,1734
+Run Generation 3
+Car ID,Lap Number,Lap Time,Fitness
+1,1,27.19,1676
+6,1,27.27,1673
+8,1,20.63,1674
+9,1,27.09,1674
+14,1,20.18,1676
+Run Generation 4
+Car ID,Lap Number,Lap Time,Fitness
+1,1,35.12,1117
+2,1,33.88,1117
+7,1,34.27,1114

@@ -47,8 +47,8 @@ brush_width_label = pygame_gui.elements.UILabel(
 # Creazione dello slider per regolare la larghezza del pennello
 brush_width_slider = pygame_gui.elements.UIHorizontalSlider(
     relative_rect=pygame.Rect((WINDOW_WIDTH // 2 - 150, WINDOW_HEIGHT - 60), (300, 50)),
-    start_value=125,
-    value_range=(100, 150),
+    start_value=135,
+    value_range=(120, 150),
     manager=manager
 )
 
@@ -62,7 +62,7 @@ toggle_ui_button = pygame_gui.elements.UIButton(
 # Variabili per il disegno
 drawing = False
 path_segments = []
-brush_width = 125  # Larghezza iniziale del pennello
+brush_width = 135  # Larghezza iniziale del pennello
 ui_visible = True  # Stato di visibilità dell'interfaccia utente
 
 # Variabili per la linea bianca
