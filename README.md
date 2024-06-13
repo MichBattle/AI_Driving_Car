@@ -84,3 +84,7 @@ This step launches the MapCreator tool to create a custom track.
 ## Troubleshooting
 
 If you encounter any issues running the scripts, ensure all required libraries are installed and your environment is properly set up. For any errors related to file paths or missing assets, check the paths specified in the scripts.
+
+## License
+
+This project is open-source and available under the [MIT License](LICENSE).
