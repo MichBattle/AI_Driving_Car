@@ -5,6 +5,7 @@ import os
 def run_map_creator():
     print("Starting MapCreator...")
     try:
+        # Execute MapCreator.py script
         subprocess.run([sys.executable, 'MapCreator.py'], check=True)
     except subprocess.CalledProcessError as e:
         print("MapCreator failed. Exiting...")
@@ -14,6 +15,7 @@ def run_map_creator():
 def run_main():
     print("Starting Main...")
     try:
+        # Execute Main.py script
         subprocess.run([sys.executable, 'Main.py'], check=True)
     except subprocess.CalledProcessError as e:
         print("Main failed. Exiting...")
@@ -31,16 +33,16 @@ def run_graph_generator():
     print("GraphGenerator started in a separate process.")
 
 if __name__ == '__main__':
-    # Esegui il MapCreator
+    # Run MapCreator
     run_map_creator()
 
-    # Attendi l'input dell'utente prima di eseguire il Main
+    # Wait for user input before running Main
     input("Press enter to start the Main program...")
 
-    # Esegui il Main
+    # Run Main
     run_main()
 
     input("Press enter to start the Graph Generator...")
 
-    # Esegui il GraphGenerator
+    # Run GraphGenerator
     run_graph_generator()
