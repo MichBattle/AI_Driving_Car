@@ -14,7 +14,7 @@ def run_map_creator():
 def run_main():
     print("Starting Main...")
     try:
-        subprocess.run([sys.executable, 'main.py'], check=True)
+        subprocess.run([sys.executable, 'Main.py'], check=True)
     except subprocess.CalledProcessError as e:
         print("Main failed. Exiting...")
         sys.exit(e.returncode)

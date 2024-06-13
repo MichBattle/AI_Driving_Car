@@ -9,8 +9,11 @@ import random
 import pickle
 import subprocess
 
-SCREEN_WIDTH = 1920
-SCREEN_HEIGHT = 1080
+pygame.init()
+
+info = pygame.display.Info()
+SCREEN_WIDTH = info.current_w
+SCREEN_HEIGHT = info.current_h
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 TRACK = pygame.image.load(os.path.join("Assets", "track.png"))
@@ -99,20 +102,21 @@ class Car(pygame.sprite.Sprite):
             self.time_passed_to_start = time.time() - self.current_lap_start_time
             self.lap = False
 
-        if SCREEN.get_at(collision_point_right) == pygame.Color(255, 255, 255) and not self.lap and self.time_passed_to_start > 1:
+        if SCREEN.get_at(collision_point_right) == pygame.Color(255, 255,
+                                                                255) and not self.lap and self.time_passed_to_start > 1:
             self.lap = True
             lap_time = time.time() - self.current_lap_start_time
             self.lap_times.append(lap_time)
             self.completed_laps += 1
             self.current_lap_start_time = time.time()  # Reset for the next lap
 
-            # Incrementa la fitness basata sulla velocità di completamento dei giri (meno è, meglio è)
+            # Increment fitness based on lap completion speed (the less, the better)
             genome.fitness += 1000 / lap_time
 
-        # Penalizza la fitness se la differenza di direzione supera una soglia
+        # Adjust the heading deviation penalty
         heading_diff = self.heading_difference()
-        if heading_diff > 90:  # Soglia di 90 gradi, puoi modificarla secondo necessità
-            genome.fitness -= min(heading_diff, genome.fitness)  # Penalità proporzionale alla differenza di direzione, ma non più della fitness attuale
+        if heading_diff > 90:
+            genome.fitness -= min(heading_diff / 2, genome.fitness)  # Reduced penalty
 
         self.time_passed_to_start = time.time() - self.current_lap_start_time
 
@@ -161,6 +165,24 @@ def update_leaderboard(cars, ge):
         leaderboard_surface.blit(text, (10, 30 * i))
     SCREEN.blit(leaderboard_surface, (SCREEN_WIDTH - 300, 0))
 
+def reset_laps(cars):
+    for car in cars:
+        car.sprite.completed_laps = 0
+        car.sprite.lap_times = []
+
+def render_current_lap(cars, generation):
+    text_surface = pygame.Surface((300, 70))
+    text_surface.set_colorkey((0, 0, 0))  # Set black as the transparent color
+    text_surface.set_alpha(128)  # Set transparency level
+
+    generation_text = FONT.render(f"Generation Number: {generation}", True, (169, 169, 169))
+    text_surface.blit(generation_text, (10, 10))
+
+    current_lap_text = FONT.render(f"Current Lap: {cars[0].sprite.completed_laps + 1}", True, (169, 169, 169))
+    text_surface.blit(current_lap_text, (10, 40))
+
+    SCREEN.blit(text_surface, (10, 10))
+
 def eval_genomes(genomes, config):
     global cars, ge, nets, pop, run_generation, total_laps
 
@@ -188,7 +210,7 @@ def eval_genomes(genomes, config):
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
+                if event.key == pygame.K_ESCAPE or run_generation == 10:
                     save_results_to_csv()
                     pop.reporters.end_generation(pop.config, pop.population, pop.species)
                     pygame.quit()
@@ -221,12 +243,15 @@ def eval_genomes(genomes, config):
             car.update(ge[i])
 
         update_leaderboard(cars, ge)
+        render_current_lap(cars, run_generation)
         pygame.display.update()
 
         total_laps = sum(car.sprite.completed_laps for car in cars)
-        if total_laps % 5 == 0 and total_laps > 0:  # Cambia qui per impostare il numero di giri prima che si riavvii
+        if total_laps % 5 == 0 and total_laps > 0:
             save_results_to_csv()
             save_population()
+            reset_laps(cars)
+            run_generation += 1
             break
 
     # Check if we need to run the graph generator script
